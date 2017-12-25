@@ -4,6 +4,7 @@ from flask import Flask, jsonify, render_template
 
 
 APP = Flask(__name__)
+EMPTY_LIST = []
 
 
 @APP.route('/', methods=['GET'])
@@ -12,8 +13,10 @@ def index():
 
 
 @APP.route('/recent/', methods=['GET'])
-def recent_torrents():
-    data = requests.get('https://thepiratebay.org/recent').text
+@APP.route('/recent/<int:page>', methods=['GET'])
+def recent_torrents(page=0):
+    url = 'https://thepiratebay.org/recent/' + str(page)
+    data = requests.get(url).text
     soup = BeautifulSoup(data, 'lxml')
     # title of torrents
     titleList = soup.find_all(class_='detLink')
@@ -21,7 +24,11 @@ def recent_torrents():
     for title in titleList:
         titles.append(title.get_text())
     # magnet links of torrents
-    magnetList = soup.find('table', {'id': 'searchResult'}).find_all('a', href=True)
+    magnetL = soup.find('table', {'id': 'searchResult'})
+    # If page has no links or page is out of bounds
+    if magnetL is None:
+        return jsonify(EMPTY_LIST), 200
+    magnetList = magnetL.find_all('a', href=True)
     magnets = []
     for magnet in magnetList:
         if 'magnet' in magnet['href']:
@@ -58,7 +65,7 @@ def recent_torrents():
             'seeds': seed,
             'leechs': leech,
         })
-    return jsonify(torrents)
+    return jsonify(torrents), 200
 
 
 if __name__ == '__main__':
