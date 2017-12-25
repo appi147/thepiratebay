@@ -30,12 +30,19 @@ def recent_torrents(page=0):
     return jsonify(parse_page(url)), 200
 
 @APP.route('/search/<term>', methods=['GET'])
+@APP.route('/search/', methods=['GET'])
+
 def search_torrents(term=None):
   '''
-  Searches TPB using the given term.
+  Searches TPB using the given term. If no term is given, defaults to recent.
   '''
+  url = None
 
-  url = BASE_URL + '/search/' + str(term)
+  if term:
+    url = BASE_URL + '/search/' + str(term)
+  else:
+    url = BASE_URL + '/recent/0'
+  
   return jsonify(parse_page(url)), 200
 
 def parse_page(url):
