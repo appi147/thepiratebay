@@ -1,6 +1,7 @@
 '''
 This is the main module
 '''
+import re
 import requests
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template
@@ -37,12 +38,15 @@ def parse_page(url):
     table_present = soup.find('table', {'id': 'searchResult'})
     if table_present is None:
         return EMPTY_LIST
+
     titles = parse_titles(soup)
     magnets = parse_magnet_links(soup)
     times, sizes, uploaders = parse_description(soup)
     seeders, leechers = parse_seed_leech(soup)
     torrents = []
-    for torrent in zip(titles, magnets, times, sizes, uploaders, seeders, leechers):
+    categories, subcategories = parse_category(soup)
+
+    for torrent in zip(titles, magnets, times, sizes, uploaders, seeders, leechers, categories, subcategories):
         torrents.append({
             'title': torrent[0],
             'magnet': torrent[1],
@@ -51,6 +55,8 @@ def parse_page(url):
             'uploader': torrent[4],
             'seeds': torrent[5],
             'leechs': torrent[6],
+            'category': torrent[7],
+            'subcategory': torrent[8],
         })
     return torrents
 
@@ -108,6 +114,22 @@ def parse_seed_leech(soup):
     for leecher in leecher_list:
         leechers.append(leecher.get_text())
     return seeders, leechers
+
+
+def parse_category(soup):
+    '''
+    Returns list of category and subcategory from soup
+    '''
+    categories = []
+    subcategories = []
+    regex = r'(\w+)\s*\(([\w\s\-\(\)]+)\)'
+    cats = soup.find_all('td', {'class': 'vertTh'})
+    for cat in cats:
+        found = re.search(regex, cat.text.strip())
+        if found:
+            categories.append(found.group(1))
+            subcategories.append(found.group(2))
+    return categories, subcategories
 
 
 if __name__ == '__main__':
