@@ -13,7 +13,7 @@ def index():
 
 
 @APP.route('/recent/', methods=['GET'])
-@APP.route('/recent/<int:page>', methods=['GET'])
+@APP.route('/recent/<int:page>/', methods=['GET'])
 def recent_torrents(page=0):
     url = 'https://thepiratebay.org/recent/' + str(page)
     data = requests.get(url).text
