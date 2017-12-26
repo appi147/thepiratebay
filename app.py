@@ -41,8 +41,9 @@ def parse_page(url):
     magnets = parse_magnet_links(soup)
     times, sizes, uploaders = parse_description(soup)
     seeders, leechers = parse_seed_leech(soup)
+    cat, subcat = parse_cat(soup)
     torrents = []
-    for torrent in zip(titles, magnets, times, sizes, uploaders, seeders, leechers):
+    for torrent in zip(titles, magnets, times, sizes, uploaders, seeders, leechers, cat, subcat):
         torrents.append({
             'title': torrent[0],
             'magnet': torrent[1],
@@ -51,6 +52,8 @@ def parse_page(url):
             'uploader': torrent[4],
             'seeds': torrent[5],
             'leechs': torrent[6],
+            'category': torrent[7],
+            'subcat': torrent[8],
         })
     return torrents
 
@@ -108,6 +111,20 @@ def parse_seed_leech(soup):
     for leecher in leecher_list:
         leechers.append(leecher.get_text())
     return seeders, leechers
+
+def parse_cat(soup):
+    '''
+    Returns list of category and subcategory
+    '''
+    cat_subcat = soup.find_all('center')
+    for i in range(len(cat_subcat)):
+        cat_subcat[i] = cat_subcat[i].get_text().replace('(', '').replace(')', '').split()
+    cat = []
+    subcat = []
+    for cs in cat_subcat:
+        cat.append(cs[0])
+        subcat.append(' '.join(cs[1:]))
+    return cat, subcat
 
 
 if __name__ == '__main__':
