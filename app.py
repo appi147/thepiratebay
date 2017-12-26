@@ -9,7 +9,7 @@ from flask import Flask, jsonify, render_template
 APP = Flask(__name__)
 EMPTY_LIST = []
 
-BASE_URL = 'https://thepiratebay.org'
+BASE_URL = 'https://thepiratebay.org/'
 
 
 @APP.route('/', methods=['GET'])
@@ -20,30 +20,53 @@ def index():
     return render_template('index.html'), 200
 
 
+@APP.route('/top/', methods=['GET'])
+def default_top():
+    '''
+    Returns default page with categories
+    '''
+    return render_template('top.html'), 200
+
+
+@APP.route('/top/<int:cat>/', methods=['GET'])
+def top_torrents(cat=0):
+    '''
+    Returns top torrents
+    '''
+    if cat == 0:
+        url = BASE_URL + 'top/' + 'all/'
+    else:
+        url = BASE_URL + 'top/' + str(cat)
+    return jsonify(parse_page(url)), 200
+
+
 @APP.route('/recent/', methods=['GET'])
 @APP.route('/recent/<int:page>/', methods=['GET'])
 def recent_torrents(page=0):
     '''
     This function implements recent page of TPB
     '''
-    url = BASE_URL + '/recent/' + str(page)
+    url = BASE_URL + 'recent/' + str(page)
     return jsonify(parse_page(url)), 200
 
 
 @APP.route('/search/', methods=['GET'])
+def default_search():
+    '''
+    Default page for search
+    '''
+    return "No search term entered<br/>Format for search: /search/search_term/page_no(optional)/"
+
+
 @APP.route('/search/<term>/', methods=['GET'])
 @APP.route('/search/<term>/<int:page>/', methods=['GET'])
 def search_torrents(term=None, page=0):
     '''
     Searches TPB using the given term. If no term is given, defaults to recent.
     '''
-    url = None
-    if term:
-        url = BASE_URL + '/search/' + str(term) + '/' + str(page)
-    else:
-        return "No search term entered<br/>Format for search: /search/search_term/page_no(optional)/"
-
+    url = BASE_URL + 'search/' + str(term) + '/' + str(page)
     return jsonify(parse_page(url)), 200
+
 
 def parse_page(url):
     '''
