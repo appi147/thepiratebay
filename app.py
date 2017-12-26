@@ -62,11 +62,8 @@ def parse_magnet_links(soup):
     '''
     Returns list of magnet links from soup
     '''
-    magnet_list = soup.find('table', {'id': 'searchResult'}).find_all('a', href=True)
-    magnets = []
-    for magnet in magnet_list:
-        if 'magnet' in magnet['href']:
-            magnets.append(magnet['href'])
+    magnets = soup.find('table', {'id': 'searchResult'}).find_all('a', href=True)
+    magnets = [magnet['href'] for magnet in magnets if 'magnet' in magnet['href']]
     return magnets
 
 
@@ -74,10 +71,8 @@ def parse_titles(soup):
     '''
     Returns list of titles of torrents from soup
     '''
-    title_list = soup.find_all(class_='detLink')
-    titles = []
-    for title in title_list:
-        titles.append(title.get_text())
+    titles = soup.find_all(class_='detLink')
+    titles[:] = [title.get_text() for title in titles]
     return titles
 
 
@@ -86,14 +81,11 @@ def parse_description(soup):
     Returns list of time, size and uploader from soup
     '''
     description = soup.find_all('font', class_='detDesc')
-    times = []
-    sizes = []
-    uploaders = []
-    for desc in description:
-        temp = desc.get_text().split(',')
-        times.append(temp[0].replace(u'\xa0', u' ').replace('Uploaded ', ''))
-        sizes.append(temp[1].replace(u'\xa0', u' ').replace(' Size ', ''))
-        uploaders.append(temp[2].replace(' ULed by ', ''))
+    description[:] = [desc.get_text().split(',') for desc in description]
+    times, sizes, uploaders = map(list, zip(*description))
+    times[:] = [time.replace(u'\xa0', u' ').replace('Uploaded ', '') for time in times]
+    sizes[:] = [size.replace(u'\xa0', u' ').replace(' Size ', '') for size in sizes]
+    uploaders[:] = [uploader.replace(' ULed by ', '') for uploader in uploaders]
     return times, sizes, uploaders
 
 
@@ -102,28 +94,21 @@ def parse_seed_leech(soup):
     Returns list of numbers of seeds and leechs from soup
     '''
     slinfo = soup.find_all('td', {'align': 'right'})
-    seeder_list = slinfo[::2]
-    leecher_list = slinfo[1::2]
-    seeders = []
-    leechers = []
-    for seeder in seeder_list:
-        seeders.append(seeder.get_text())
-    for leecher in leecher_list:
-        leechers.append(leecher.get_text())
+    seeders = slinfo[::2]
+    leechers = slinfo[1::2]
+    seeders[:] = [seeder.get_text() for seeder in seeders]
+    leechers[:] = [leecher.get_text() for leecher in leechers]
     return seeders, leechers
+
 
 def parse_cat(soup):
     '''
     Returns list of category and subcategory
     '''
     cat_subcat = soup.find_all('center')
-    for i in range(len(cat_subcat)):
-        cat_subcat[i] = cat_subcat[i].get_text().replace('(', '').replace(')', '').split()
-    cat = []
-    subcat = []
-    for cs in cat_subcat:
-        cat.append(cs[0])
-        subcat.append(' '.join(cs[1:]))
+    cat_subcat[:] = [c.get_text().replace('(', '').replace(')', '').split() for c in cat_subcat]
+    cat = [cs[0] for cs in cat_subcat]
+    subcat = [' '.join(cs[1:]) for cs in cat_subcat]
     return cat, subcat
 
 
