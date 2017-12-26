@@ -9,6 +9,8 @@ from flask import Flask, jsonify, render_template
 APP = Flask(__name__)
 EMPTY_LIST = []
 
+BASE_URL = 'https://thepiratebay.org'
+
 
 @APP.route('/', methods=['GET'])
 def index():
@@ -24,9 +26,24 @@ def recent_torrents(page=0):
     '''
     This function implements recent page of TPB
     '''
-    url = 'https://thepiratebay.org/recent/' + str(page)
+    url = BASE_URL + '/recent/' + str(page)
     return jsonify(parse_page(url)), 200
 
+@APP.route('/search/<term>', methods=['GET'])
+@APP.route('/search/', methods=['GET'])
+
+def search_torrents(term=None):
+  '''
+  Searches TPB using the given term. If no term is given, defaults to recent.
+  '''
+  url = None
+
+  if term:
+    url = BASE_URL + '/search/' + str(term)
+  else:
+    url = BASE_URL + '/recent/0'
+  
+  return jsonify(parse_page(url)), 200
 
 def parse_page(url):
     '''

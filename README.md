@@ -9,5 +9,9 @@ This is unofficial API of thepiratebay.org. It is currently hosted on Heroku and
 Recent torrents has option for page number also. Page numbers are 0 indexed.
 Use [https://tpbc.herokuapp.com/recent/page_number/](https://tpbc.herokuapp.com/recent/0/) to access the data.
 
+### Search
+
+Search can be achieved through the `/search/` endpoint. If no term is given, defaults to `/recent/`.
+
 
 **Contributions are welcome**
