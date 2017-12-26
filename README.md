@@ -11,7 +11,6 @@ Use [https://tpbc.herokuapp.com/recent/page_number/](https://tpbc.herokuapp.com/
 
 ### Search
 
-Search can be achieved through the `/search/` endpoint. If no term is given, defaults to `/recent/`.
-
+Search can be achieved through the `/search/search_term/page_number/` endpoint
 
 **Contributions are welcome**
