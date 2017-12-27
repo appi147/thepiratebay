@@ -16,4 +16,8 @@ Search can be accessed through the `/search/search_term/page_number/` endpoint.
 
 Top torrents can be accessed through the `/top/category_code/` endpoint. Category code can be found in `/top/`.
 
+### Top(48h) torrents
+
+Top torrents for last 48hours can be accessed through the `/top48h/category_code/` endpoint. Category code can be found in `/top48h/`.
+
 **Contributions are welcome**

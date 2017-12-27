@@ -21,6 +21,7 @@ def index():
 
 
 @APP.route('/top/', methods=['GET'])
+@APP.route('/top48h/', methods=['GET'])
 def default_top():
     '''
     Returns default page with categories
@@ -37,6 +38,18 @@ def top_torrents(cat=0):
         url = BASE_URL + 'top/' + 'all/'
     else:
         url = BASE_URL + 'top/' + str(cat)
+    return jsonify(parse_page(url)), 200
+
+
+@APP.route('/top48h/<int:cat>/', methods=['GET'])
+def top48h_torrents(cat=0):
+    '''
+    Returns top torrents last 48 hrs
+    '''
+    if cat == 0:
+        url = BASE_URL + 'top/48h' + 'all/'
+    else:
+        url = BASE_URL + 'top/48h' + str(cat)
     return jsonify(parse_page(url)), 200
 
 
