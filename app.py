@@ -14,20 +14,20 @@ BASE_URL = 'https://thepiratebay.org/'
 
 #Translation table for sorting filters
 sort_filters = {
-  "name_asc": 1,
-  "name_desc": 2,
-  "uploaded_desc": 3,
-  "uploaded_asc": 4,
-  "size_desc": 5,
-  "size_asc": 6,
-  "seed_desc": 7,
-  "seed_asc": 8,
-  "leech_desc": 9,
-  "leech_asc": 10,
-  "uploader_asc": 11,
-  "uploader_desc": 12,
-  "type_asc": 13,
-  "type_desc": 14
+    'title_asc': 1,
+    'title_desc': 2,
+    'time_desc': 3,
+    'time_asc': 4,
+    'size_desc': 5,
+    'size_asc': 6,
+    'seeds_desc': 7,
+    'seeds_asc': 8,
+    'leeches_desc': 9,
+    'leeches_asc': 10,
+    'uploader_asc': 11,
+    'uploader_desc': 12,
+    'category_asc': 13,
+    'category_desc': 14
 }
 
 @APP.route('/', methods=['GET'])
@@ -53,14 +53,14 @@ def top_torrents(cat=0):
     Returns top torrents
     '''
 
-    sort = request.args.get("sort")
-    sort_arg = sort_filters[request.args.get("sort")] if sort in sort_filters else ""
+    sort = request.args.get('sort')
+    sort_arg = sort if sort in sort_filters else ''
 
     if cat == 0:
         url = BASE_URL + 'top/' + 'all/' + str(sort_arg)
     else:
         url = BASE_URL + 'top/' + str(cat) + '/' + str(sort_arg)
-    return jsonify(parse_page(url)), 200
+    return jsonify(parse_page(url, sort=sort_arg)), 200
 
 
 @APP.route('/top48h/<int:cat>/', methods=['GET'])
@@ -68,11 +68,16 @@ def top48h_torrents(cat=0):
     '''
     Returns top torrents last 48 hrs
     '''
+
+    sort = request.args.get('sort')
+    sort_arg = sort if sort in sort_filters else ''
+
     if cat == 0:
         url = BASE_URL + 'top/48h' + 'all/'
     else:
         url = BASE_URL + 'top/48h' + str(cat)
-    return jsonify(parse_page(url)), 200
+
+    return jsonify(parse_page(url, sort=sort_arg)), 200
 
 
 @APP.route('/recent/', methods=['GET'])
@@ -81,9 +86,11 @@ def recent_torrents(page=0):
     '''
     This function implements recent page of TPB
     '''
+    sort = request.args.get('sort')
+    sort_arg = sort if sort in sort_filters else ''
     
     url = BASE_URL + 'recent/' + str(page)
-    return jsonify(parse_page(url)), 200
+    return jsonify(parse_page(url, sort=sort_arg)), 200
 
 
 @APP.route('/search/', methods=['GET'])
@@ -91,7 +98,7 @@ def default_search():
     '''
     Default page for search
     '''
-    return "No search term entered<br/>Format for search: /search/search_term/page_no(optional)/"
+    return 'No search term entered<br/>Format for search: /search/search_term/page_no(optional)/'
 
 
 @APP.route('/search/<term>/', methods=['GET'])
@@ -101,14 +108,14 @@ def search_torrents(term=None, page=0):
     Searches TPB using the given term. If no term is given, defaults to recent.
     '''
 
-    sort = request.args.get("sort")
-    sort_arg = sort_filters[request.args.get("sort")] if sort in sort_filters else ""
+    sort = request.args.get('sort')
+    sort_arg = sort_filters[request.args.get('sort')] if sort in sort_filters else ''
 
     url = BASE_URL + 'search/' + str(term) + '/' + str(page) + '/' + str(sort_arg)
     return jsonify(parse_page(url)), 200
 
 
-def parse_page(url):
+def parse_page(url, sort=None):
     '''
     This function parses the page and returns list of torrents
     '''
@@ -131,10 +138,15 @@ def parse_page(url):
             'size': convert_to_bytes(torrent[3]),
             'uploader': torrent[4],
             'seeds': int(torrent[5]),
-            'leechs': int(torrent[6]),
+            'leeches': int(torrent[6]),
             'category': torrent[7],
             'subcat': torrent[8],
         })
+
+    if sort:
+      sort_params = sort.split('_')
+      torrents = sorted(torrents, key=lambda k: k.get(sort_params[0]), reverse=sort_params[1].upper()=='DESC')
+
     return torrents
 
 
@@ -171,7 +183,7 @@ def parse_description(soup):
 
 def parse_seed_leech(soup):
     '''
-    Returns list of numbers of seeds and leechs from soup
+    Returns list of numbers of seeds and leeches from soup
     '''
     slinfo = soup.find_all('td', {'align': 'right'})
     seeders = slinfo[::2]
@@ -208,11 +220,23 @@ def convert_to_date(date_str):
     '''
     Converts the dates into a proper standardized datetime.
     '''
-    if re.search('[0-9]*-[0-9]*\s[0-9]+:[0-9]+', date_str.strip()):
-      date_format = '%Y-%m-%d %H:%M'
-      date_str = '{}-'.format(datetime.today().year) + date_str
+
+    date_format = None
+
+    if re.search('/[0-9]* min(s)? ago/', date_str):
+        minutes_delta = int(date_str.split()[0])
+        torrent_dt = datetime.now() - datetime.timedelta(minutes=minutes_delta)
+        date_str = '{}-{} {}:{}'.format(torrent_dt.month, torrent_dt.day, torrent_dt.hours, torrent_dt.minutes)
+
+    if re.search('(([0-9]*-[0-9]*)|(Today))\s[0-9]+:[0-9]+', date_str.strip()):
+        today = datetime.today()
+        date_str = re.sub('Today', '{}-{}'.format(today.month, today.day), date_str)
+        date_str = '{}-'.format(today.year) + date_str
+      
+        date_format = '%Y-%m-%d %H:%M'
+
     else:
-      date_format = '%m-%d %Y'
+        date_format = '%m-%d %Y'
 
     return datetime.strptime(date_str, date_format)
 
