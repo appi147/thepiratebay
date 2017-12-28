@@ -1,9 +1,10 @@
 '''
 This is the main module
 '''
-import requests
+import requests, re
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request
+from datetime import datetime
 
 
 APP = Flask(__name__)
@@ -126,11 +127,11 @@ def parse_page(url):
         torrents.append({
             'title': torrent[0],
             'magnet': torrent[1],
-            'time': torrent[2],
-            'size': torrent[3],
+            'time': convert_to_date(torrent[2]),
+            'size': convert_to_bytes(torrent[3]),
             'uploader': torrent[4],
-            'seeds': torrent[5],
-            'leechs': torrent[6],
+            'seeds': int(torrent[5]),
+            'leechs': int(torrent[6]),
             'category': torrent[7],
             'subcat': torrent[8],
         })
@@ -190,6 +191,30 @@ def parse_cat(soup):
     subcat = [' '.join(cs[1:]) for cs in cat_subcat]
     return cat, subcat
 
+def convert_to_bytes(size_str):
+    '''
+    Converts torrent sizes to a common count in bytes.
+    '''
+    size_data = size_str.split()
+
+    multipliers = [None, 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB']
+
+    size_magnitude = float(size_data[0])
+    size_multiplier = 1024 ** multipliers.index(size_data[1])
+
+    return size_magnitude * size_multiplier
+
+def convert_to_date(date_str):
+    '''
+    Converts the dates into a proper standardized datetime.
+    '''
+    if re.search('[0-9]*-[0-9]*\s[0-9]+:[0-9]+', date_str.strip()):
+      date_format = '%Y-%m-%d %H:%M'
+      date_str = '{}-'.format(datetime.today().year) + date_str
+    else:
+      date_format = '%m-%d %Y'
+
+    return datetime.strptime(date_str, date_format)
 
 if __name__ == '__main__':
     APP.run()
