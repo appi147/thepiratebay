@@ -3,7 +3,7 @@ This is the main module
 '''
 import requests
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 
 
 APP = Flask(__name__)
@@ -11,6 +11,23 @@ EMPTY_LIST = []
 
 BASE_URL = 'https://thepiratebay.org/'
 
+#Translation table for sorting filters
+sort_filters = {
+  "name_asc": 1,
+  "name_desc": 2,
+  "uploaded_desc": 3,
+  "uploaded_asc": 4,
+  "size_desc": 5,
+  "size_asc": 6,
+  "seed_desc": 7,
+  "seed_asc": 8,
+  "leech_desc": 9,
+  "leech_asc": 10,
+  "uploader_asc": 11,
+  "uploader_desc": 12,
+  "type_asc": 13,
+  "type_desc": 14
+}
 
 @APP.route('/', methods=['GET'])
 def index():
@@ -34,10 +51,14 @@ def top_torrents(cat=0):
     '''
     Returns top torrents
     '''
+
+    sort = request.args.get("sort")
+    sort_arg = sort_filters[request.args.get("sort")] if sort in sort_filters else ""
+
     if cat == 0:
-        url = BASE_URL + 'top/' + 'all/'
+        url = BASE_URL + 'top/' + 'all/' + str(sort_arg)
     else:
-        url = BASE_URL + 'top/' + str(cat)
+        url = BASE_URL + 'top/' + str(cat) + '/' + str(sort_arg)
     return jsonify(parse_page(url)), 200
 
 
@@ -59,6 +80,7 @@ def recent_torrents(page=0):
     '''
     This function implements recent page of TPB
     '''
+    
     url = BASE_URL + 'recent/' + str(page)
     return jsonify(parse_page(url)), 200
 
@@ -77,7 +99,11 @@ def search_torrents(term=None, page=0):
     '''
     Searches TPB using the given term. If no term is given, defaults to recent.
     '''
-    url = BASE_URL + 'search/' + str(term) + '/' + str(page)
+
+    sort = request.args.get("sort")
+    sort_arg = sort_filters[request.args.get("sort")] if sort in sort_filters else ""
+
+    url = BASE_URL + 'search/' + str(term) + '/' + str(page) + '/' + str(sort_arg)
     return jsonify(parse_page(url)), 200
 
 
