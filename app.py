@@ -4,7 +4,7 @@ This is the main module
 import requests, re
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 APP = Flask(__name__)
@@ -144,8 +144,8 @@ def parse_page(url, sort=None):
         })
 
     if sort:
-      sort_params = sort.split('_')
-      torrents = sorted(torrents, key=lambda k: k.get(sort_params[0]), reverse=sort_params[1].upper()=='DESC')
+        sort_params = sort.split('_')
+        torrents = sorted(torrents, key=lambda k: k.get(sort_params[0]), reverse=sort_params[1].upper()=='DESC')
 
     return torrents
 
@@ -209,10 +209,11 @@ def convert_to_bytes(size_str):
     '''
     size_data = size_str.split()
 
-    multipliers = [None, 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB']
+    multipliers = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB']
 
     size_magnitude = float(size_data[0])
-    size_multiplier = 1024 ** multipliers.index(size_data[1])
+    multiplier_exp = multipliers.index(size_data[1])
+    size_multiplier = 1024 ** multiplier_exp if multiplier_exp > 0 else 1
 
     return size_magnitude * size_multiplier
 
@@ -223,16 +224,25 @@ def convert_to_date(date_str):
 
     date_format = None
 
-    if re.search('/[0-9]* min(s)? ago/', date_str):
+    if re.search('^[0-9]+ min(s)? ago$', date_str.strip()):
         minutes_delta = int(date_str.split()[0])
-        torrent_dt = datetime.now() - datetime.timedelta(minutes=minutes_delta)
-        date_str = '{}-{} {}:{}'.format(torrent_dt.month, torrent_dt.day, torrent_dt.hours, torrent_dt.minutes)
+        torrent_dt = datetime.now() - timedelta(minutes=minutes_delta)
+        date_str = '{}-{}-{} {}:{}'.format(torrent_dt.year, torrent_dt.month, torrent_dt.day, torrent_dt.hour, torrent_dt.minute)
+        date_format = '%Y-%m-%d %H:%M'
 
-    if re.search('(([0-9]*-[0-9]*)|(Today))\s[0-9]+:[0-9]+', date_str.strip()):
+    elif re.search('^[0-9]*-[0-9]*\s[0-9]+:[0-9]+$', date_str.strip()):
         today = datetime.today()
-        date_str = re.sub('Today', '{}-{}'.format(today.month, today.day), date_str)
         date_str = '{}-'.format(today.year) + date_str
-      
+        date_format = '%Y-%m-%d %H:%M'
+    
+    elif re.search('^Today\s[0-9]+\:[0-9]+$', date_str):
+        today = datetime.today()
+        date_str = date_str.replace('Today', '{}-{}-{}'.format(today.year, today.month, today.day))
+        date_format = '%Y-%m-%d %H:%M'
+    
+    elif re.search('^Y-day\s[0-9]+\:[0-9]+$', date_str):
+        today = datetime.today() - timedelta(days=1)
+        date_str = date_str.replace('Y-day', '{}-{}-{}'.format(today.year, today.month, today.day))
         date_format = '%Y-%m-%d %H:%M'
 
     else:
