@@ -1,9 +1,10 @@
 '''
 This is the main module
 '''
-import requests
+import requests, re
 from bs4 import BeautifulSoup
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
+from datetime import datetime, timedelta
 
 
 APP = Flask(__name__)
@@ -11,6 +12,23 @@ EMPTY_LIST = []
 
 BASE_URL = 'https://thepiratebay.org/'
 
+#Translation table for sorting filters
+sort_filters = {
+    'title_asc': 1,
+    'title_desc': 2,
+    'time_desc': 3,
+    'time_asc': 4,
+    'size_desc': 5,
+    'size_asc': 6,
+    'seeds_desc': 7,
+    'seeds_asc': 8,
+    'leeches_desc': 9,
+    'leeches_asc': 10,
+    'uploader_asc': 11,
+    'uploader_desc': 12,
+    'category_asc': 13,
+    'category_desc': 14
+}
 
 @APP.route('/', methods=['GET'])
 def index():
@@ -34,11 +52,15 @@ def top_torrents(cat=0):
     '''
     Returns top torrents
     '''
+
+    sort = request.args.get('sort')
+    sort_arg = sort if sort in sort_filters else ''
+
     if cat == 0:
-        url = BASE_URL + 'top/' + 'all/'
+        url = BASE_URL + 'top/' + 'all/' + str(sort_arg)
     else:
-        url = BASE_URL + 'top/' + str(cat)
-    return jsonify(parse_page(url)), 200
+        url = BASE_URL + 'top/' + str(cat) + '/' + str(sort_arg)
+    return jsonify(parse_page(url, sort=sort_arg)), 200
 
 
 @APP.route('/top48h/<int:cat>/', methods=['GET'])
@@ -46,11 +68,16 @@ def top48h_torrents(cat=0):
     '''
     Returns top torrents last 48 hrs
     '''
+
+    sort = request.args.get('sort')
+    sort_arg = sort if sort in sort_filters else ''
+
     if cat == 0:
         url = BASE_URL + 'top/48h' + 'all/'
     else:
         url = BASE_URL + 'top/48h' + str(cat)
-    return jsonify(parse_page(url)), 200
+
+    return jsonify(parse_page(url, sort=sort_arg)), 200
 
 
 @APP.route('/recent/', methods=['GET'])
@@ -59,8 +86,11 @@ def recent_torrents(page=0):
     '''
     This function implements recent page of TPB
     '''
+    sort = request.args.get('sort')
+    sort_arg = sort if sort in sort_filters else ''
+    
     url = BASE_URL + 'recent/' + str(page)
-    return jsonify(parse_page(url)), 200
+    return jsonify(parse_page(url, sort=sort_arg)), 200
 
 
 @APP.route('/search/', methods=['GET'])
@@ -68,7 +98,7 @@ def default_search():
     '''
     Default page for search
     '''
-    return "No search term entered<br/>Format for search: /search/search_term/page_no(optional)/"
+    return 'No search term entered<br/>Format for search: /search/search_term/page_no(optional)/'
 
 
 @APP.route('/search/<term>/', methods=['GET'])
@@ -77,11 +107,15 @@ def search_torrents(term=None, page=0):
     '''
     Searches TPB using the given term. If no term is given, defaults to recent.
     '''
-    url = BASE_URL + 'search/' + str(term) + '/' + str(page)
+
+    sort = request.args.get('sort')
+    sort_arg = sort_filters[request.args.get('sort')] if sort in sort_filters else ''
+
+    url = BASE_URL + 'search/' + str(term) + '/' + str(page) + '/' + str(sort_arg)
     return jsonify(parse_page(url)), 200
 
 
-def parse_page(url):
+def parse_page(url, sort=None):
     '''
     This function parses the page and returns list of torrents
     '''
@@ -100,14 +134,19 @@ def parse_page(url):
         torrents.append({
             'title': torrent[0],
             'magnet': torrent[1],
-            'time': torrent[2],
-            'size': torrent[3],
+            'time': convert_to_date(torrent[2]),
+            'size': convert_to_bytes(torrent[3]),
             'uploader': torrent[4],
-            'seeds': torrent[5],
-            'leechs': torrent[6],
+            'seeds': int(torrent[5]),
+            'leeches': int(torrent[6]),
             'category': torrent[7],
             'subcat': torrent[8],
         })
+
+    if sort:
+        sort_params = sort.split('_')
+        torrents = sorted(torrents, key=lambda k: k.get(sort_params[0]), reverse=sort_params[1].upper()=='DESC')
+
     return torrents
 
 
@@ -144,7 +183,7 @@ def parse_description(soup):
 
 def parse_seed_leech(soup):
     '''
-    Returns list of numbers of seeds and leechs from soup
+    Returns list of numbers of seeds and leeches from soup
     '''
     slinfo = soup.find_all('td', {'align': 'right'})
     seeders = slinfo[::2]
@@ -164,6 +203,52 @@ def parse_cat(soup):
     subcat = [' '.join(cs[1:]) for cs in cat_subcat]
     return cat, subcat
 
+def convert_to_bytes(size_str):
+    '''
+    Converts torrent sizes to a common count in bytes.
+    '''
+    size_data = size_str.split()
+
+    multipliers = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB']
+
+    size_magnitude = float(size_data[0])
+    multiplier_exp = multipliers.index(size_data[1])
+    size_multiplier = 1024 ** multiplier_exp if multiplier_exp > 0 else 1
+
+    return size_magnitude * size_multiplier
+
+def convert_to_date(date_str):
+    '''
+    Converts the dates into a proper standardized datetime.
+    '''
+
+    date_format = None
+
+    if re.search('^[0-9]+ min(s)? ago$', date_str.strip()):
+        minutes_delta = int(date_str.split()[0])
+        torrent_dt = datetime.now() - timedelta(minutes=minutes_delta)
+        date_str = '{}-{}-{} {}:{}'.format(torrent_dt.year, torrent_dt.month, torrent_dt.day, torrent_dt.hour, torrent_dt.minute)
+        date_format = '%Y-%m-%d %H:%M'
+
+    elif re.search('^[0-9]*-[0-9]*\s[0-9]+:[0-9]+$', date_str.strip()):
+        today = datetime.today()
+        date_str = '{}-'.format(today.year) + date_str
+        date_format = '%Y-%m-%d %H:%M'
+    
+    elif re.search('^Today\s[0-9]+\:[0-9]+$', date_str):
+        today = datetime.today()
+        date_str = date_str.replace('Today', '{}-{}-{}'.format(today.year, today.month, today.day))
+        date_format = '%Y-%m-%d %H:%M'
+    
+    elif re.search('^Y-day\s[0-9]+\:[0-9]+$', date_str):
+        today = datetime.today() - timedelta(days=1)
+        date_str = date_str.replace('Y-day', '{}-{}-{}'.format(today.year, today.month, today.day))
+        date_format = '%Y-%m-%d %H:%M'
+
+    else:
+        date_format = '%m-%d %Y'
+
+    return datetime.strptime(date_str, date_format)
 
 if __name__ == '__main__':
     APP.run()
