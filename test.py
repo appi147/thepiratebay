@@ -1,7 +1,8 @@
-import requests, time
+import requests
+import time
 import app
 
-#List of category codes for sequential endpoint testing
+# List of category codes for sequential endpoint testing
 CATEGORY_MAP = [
   100, 101, 102, 103, 104, 199, 200, 201, 202,
   203, 204, 205, 206, 207, 208, 209, 299, 300,
@@ -10,6 +11,7 @@ CATEGORY_MAP = [
   501, 502, 503, 504, 505, 506, 599, 600, 601,
   602, 603, 604, 605, 699
 ]
+
 
 def test_date_conv():
     '''
@@ -25,7 +27,7 @@ def test_date_conv():
     ]
 
     passed, failed = 0, 0
-    
+  
     print('DATE CONVERSION')
 
     for test_str in test_strings:
@@ -37,6 +39,7 @@ def test_date_conv():
             failed += 1
 
     print('{} PASSED, {} FAILED\n'.format(passed, failed))
+
 
 def test_size_conv():
     '''
@@ -65,7 +68,8 @@ def test_size_conv():
             failed += 1
 
     print('{} PASSED, {} FAILED\n'.format(passed, failed))
-    
+
+
 def test_recent_endpoints(api_base):
     '''
     Tests all the variations of /recent/ and verifies that a 200 response occurs.
@@ -91,6 +95,7 @@ def test_recent_endpoints(api_base):
         time.sleep(1)
 
     print('{} PASSED, {} FAILED\n'.format(passed, failed))
+
 
 def test_top_endpoints(api_base):
     '''
@@ -118,6 +123,7 @@ def test_top_endpoints(api_base):
                 time.sleep(1)
 
     print('{} PASSED, {} FAILED\n'.format(passed, failed))
+
 
 if __name__ == '__main__':
     test_date_conv()

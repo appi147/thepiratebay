@@ -1,7 +1,8 @@
 '''
 This is the main module
 '''
-import requests, re
+import requests
+import re
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request
 from datetime import datetime, timedelta
@@ -12,7 +13,7 @@ EMPTY_LIST = []
 
 BASE_URL = 'https://thepiratebay.org/'
 
-#Translation table for sorting filters
+# Translation table for sorting filters
 sort_filters = {
     'title_asc': 1,
     'title_desc': 2,
@@ -29,6 +30,7 @@ sort_filters = {
     'category_asc': 13,
     'category_desc': 14
 }
+
 
 @APP.route('/', methods=['GET'])
 def index():
@@ -88,7 +90,7 @@ def recent_torrents(page=0):
     '''
     sort = request.args.get('sort')
     sort_arg = sort if sort in sort_filters else ''
-    
+
     url = BASE_URL + 'recent/' + str(page)
     return jsonify(parse_page(url, sort=sort_arg)), 200
 
@@ -145,7 +147,7 @@ def parse_page(url, sort=None):
 
     if sort:
         sort_params = sort.split('_')
-        torrents = sorted(torrents, key=lambda k: k.get(sort_params[0]), reverse=sort_params[1].upper()=='DESC')
+        torrents = sorted(torrents, key=lambda k: k.get(sort_params[0]), reverse=sort_params[1].upper() == 'DESC')
 
     return torrents
 
@@ -249,6 +251,7 @@ def convert_to_date(date_str):
         date_format = '%m-%d %Y'
 
     return datetime.strptime(date_str, date_format)
+
 
 if __name__ == '__main__':
     APP.run()
