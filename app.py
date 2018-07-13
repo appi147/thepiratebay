@@ -5,10 +5,12 @@ import requests
 import re
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request
+from flask_cors import CORS
 from datetime import datetime, timedelta
 
 
 APP = Flask(__name__)
+CORS(APP)
 EMPTY_LIST = []
 
 BASE_URL = 'https://thepiratebay.org/'
