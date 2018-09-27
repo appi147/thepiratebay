@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 exec gunicorn app:APP \
      -w 2 -t 120 \
