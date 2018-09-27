@@ -14,10 +14,11 @@ RUN apk add --no-cache libxml2-dev && \
 
 WORKDIR /opt
 
-COPY . .
-
+RUN mkdir -p thepiratebay
 WORKDIR /opt/thepiratebay
 
-EXPOSE 5000
+COPY . .
 
-CMD python3 app.py
+RUN ["chmod", "+x", "entrypoint.sh"]
+
+ENTRYPOINT ["./entrypoin.sh"]
