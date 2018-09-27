@@ -21,4 +21,4 @@ COPY . .
 
 RUN ["chmod", "+x", "entrypoint.sh"]
 
-ENTRYPOINT ["./entrypoin.sh"]
+ENTRYPOINT ["./entrypoint.sh"]
