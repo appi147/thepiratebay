@@ -255,7 +255,3 @@ def convert_to_date(date_str):
         date_format = '%m-%d %Y'
 
     return datetime.strptime(date_str, date_format)
-
-
-if __name__ == '__main__':
-    APP.run(host="0.0.0.0")
