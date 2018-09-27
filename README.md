@@ -44,3 +44,10 @@ Top torrents can be accessed through the `/top/category_code/` endpoint. Categor
 Top torrents for last 48hours can be accessed through the `/top48h/category_code/` endpoint. Category code can be found in `/top48h/`.
 
 **Contributions are welcome**
+
+#### Running with Docker
+```bash
+# Assuming you have docker on your machine this should work
+docker build -t pirate-bay .
+docker container run -e "BASE_URL=https://thepiratebay.asia/" -p 5000:5000 --name pirateBay pirate-bay
+```
