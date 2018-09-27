@@ -1,6 +1,8 @@
 '''
 This is the main module
 '''
+import os
+
 import requests
 import re
 from bs4 import BeautifulSoup
@@ -13,7 +15,7 @@ APP = Flask(__name__)
 CORS(APP)
 EMPTY_LIST = []
 
-BASE_URL = 'https://thepiratebay.org/'
+BASE_URL = os.getenv('BASE_URL', 'https://thepiratebay.org/')
 
 # Translation table for sorting filters
 sort_filters = {
@@ -256,4 +258,4 @@ def convert_to_date(date_str):
 
 
 if __name__ == '__main__':
-    APP.run()
+    APP.run(host="0.0.0.0")
