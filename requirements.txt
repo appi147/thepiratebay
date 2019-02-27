@@ -1,6 +1,6 @@
-Flask==0.12.2
-gunicorn==19.7.1
-beautifulsoup4==4.6.0
-requests==2.18.4
-lxml==4.1.1
-flask_cors==3.0.6
+Flask
+gunicorn
+beautifulsoup4
+requests
+lxml
+flask_cors
