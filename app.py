@@ -126,6 +126,23 @@ def search_torrents(term=None, page=0):
     url = BASE_URL + 'search/' + str(term) + '/' + str(page) + '/' + str(sort_arg)
     return jsonify(parse_page(url)), 200
 
+@APP.route('/user/', methods=['GET'])
+def default_list_user():
+    '''
+    Default page for list by user
+    '''
+    return 'No user entered<br/>Format: /user/user_name/page_no(optional)/'
+
+@APP.route('/user/<user>/', methods=['GET'])
+@APP.route('/user/<user>/<int:page>/', methods=['GET'])
+def list_user(user=None, page=0):
+    '''
+    Lists torrents uploaded by user
+    '''
+    sort = request.args.get('sort')
+    sort_arg = sort_filters[request.args.get('sort')] if sort in sort_filters else '7'
+    url = BASE_URL + 'user/' + str(user) + '/' + str(page) + '/' + str(sort_arg)
+    return jsonify(parse_page(url)), 200
 
 def parse_page(url, sort=None):
     '''

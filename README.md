@@ -6,7 +6,7 @@ This is unofficial API of thepiratebay.org. It is currently hosted on Heroku and
 
 ### Sort filters
 
-On `top` and `search` queries, results can be sorted by using the `sort` GET parameter.
+On `top`, `search` and `user` queries, results can be sorted by using the `sort` GET parameter.
 
 Example: `http://<api-address>/top/?sort=title_asc`
 
@@ -34,6 +34,10 @@ Recent torrents can be accessed through the `/recent/page_number/` endpoint.
 ### Search
 
 Search can be accessed through the `/search/search_term/page_number/` endpoint.
+
+### Torrents by User
+
+Get torrents uploaded by a specific user through the `/user/user_name/page_number/` endpoint.
 
 ### Top torrents
 
