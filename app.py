@@ -16,6 +16,7 @@ CORS(APP)
 EMPTY_LIST = []
 
 BASE_URL = os.getenv('BASE_URL', 'https://thepiratebay.org/')
+JSONIFY_PRETTYPRINT_REGULAR = True
 
 # Translation table for sorting filters
 sort_filters = {
