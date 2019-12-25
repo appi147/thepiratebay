@@ -15,7 +15,7 @@ APP = Flask(__name__)
 CORS(APP)
 EMPTY_LIST = []
 
-BASE_URL = os.getenv('BASE_URL', 'https://unblocktheship.org/')
+BASE_URL = os.getenv('BASE_URL', 'https://thepiratebay.org/')
 
 # Translation table for sorting filters
 sort_filters = {
