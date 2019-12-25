@@ -15,7 +15,7 @@ APP = Flask(__name__)
 CORS(APP)
 EMPTY_LIST = []
 
-BASE_URL = os.getenv('BASE_URL', 'https://unblocktheship.org/')
+BASE_URL = os.getenv('BASE_URL', 'https://thepiratebay.org/')
 
 # Translation table for sorting filters
 sort_filters = {
@@ -137,12 +137,13 @@ def parse_page(url, sort=None):
     if table_present is None:
         return EMPTY_LIST
     titles = parse_titles(soup)
+    links = parse_links(soup)
     magnets = parse_magnet_links(soup)
     times, sizes, uploaders = parse_description(soup)
     seeders, leechers = parse_seed_leech(soup)
     cat, subcat = parse_cat(soup)
     torrents = []
-    for torrent in zip(titles, magnets, times, sizes, uploaders, seeders, leechers, cat, subcat):
+    for torrent in zip(titles, magnets, times, sizes, uploaders, seeders, leechers, cat, subcat, links):
         torrents.append({
             'title': torrent[0],
             'magnet': torrent[1],
@@ -153,6 +154,7 @@ def parse_page(url, sort=None):
             'leeches': int(torrent[6]),
             'category': torrent[7],
             'subcat': torrent[8],
+            'id': torrent[9],
         })
 
     if sort:
@@ -178,6 +180,15 @@ def parse_titles(soup):
     titles = soup.find_all(class_='detLink')
     titles[:] = [title.get_text() for title in titles]
     return titles
+
+
+def parse_links(soup):
+    '''
+    Returns list of links of torrents from soup
+    '''
+    links = soup.find_all('a', class_='detLink', href=True)
+    links[:] = [link['href'] for link in links]
+    return links
 
 
 def parse_description(soup):
@@ -215,6 +226,7 @@ def parse_cat(soup):
     subcat = [' '.join(cs[1:]) for cs in cat_subcat]
     return cat, subcat
 
+
 def convert_to_bytes(size_str):
     '''
     Converts torrent sizes to a common count in bytes.
@@ -229,11 +241,11 @@ def convert_to_bytes(size_str):
 
     return size_magnitude * size_multiplier
 
+
 def convert_to_date(date_str):
     '''
     Converts the dates into a proper standardized datetime.
     '''
-
     date_format = None
 
     if re.search('^[0-9]+ min(s)? ago$', date_str.strip()):
