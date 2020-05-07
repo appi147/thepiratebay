@@ -5,17 +5,26 @@ import os
 
 import requests
 import re
+import time
 from bs4 import BeautifulSoup
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 from datetime import datetime, timedelta
-
+from selenium import webdriver
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 APP = Flask(__name__)
 CORS(APP)
 EMPTY_LIST = []
 
 BASE_URL = os.getenv('BASE_URL', 'https://thepiratebay.org/')
+HOST_URL = os.getenv('HOST_URL', 'http://0.0.0.0:4444/wd/hub')
+
 JSONIFY_PRETTYPRINT_REGULAR = True
 
 # Translation table for sorting filters
@@ -62,11 +71,10 @@ def top_torrents(cat=0):
 
     sort = request.args.get('sort')
     sort_arg = sort if sort in sort_filters else ''
-
     if cat == 0:
-        url = BASE_URL + 'top/' + 'all/' + str(sort_arg)
+    	url = BASE_URL + 'search.php?q=top100:all'
     else:
-        url = BASE_URL + 'top/' + str(cat) + '/' + str(sort_arg)
+        url = BASE_URL + 'search.php?q=top100:' + str(cat)
     return jsonify(parse_page(url, sort=sort_arg)), 200
 
 
@@ -80,29 +88,32 @@ def top48h_torrents(cat=0):
     sort_arg = sort if sort in sort_filters else ''
 
     if cat == 0:
-        url = BASE_URL + 'top/48h' + 'all/'
+        url = BASE_URL + 'search.php?q=top100:48h'
     else:
-        url = BASE_URL + 'top/48h' + str(cat)
+        url = BASE_URL + 'search.php?q=top100:48h_' + str(cat)
 
     return jsonify(parse_page(url, sort=sort_arg)), 200
 
 
 @APP.route('/recent/', methods=['GET'])
-@APP.route('/recent/<int:page>/', methods=['GET'])
-def recent_torrents(page=0):
+def recent_torrents():
     '''
     This function implements recent page of TPB
     '''
     sort = request.args.get('sort')
     sort_arg = sort if sort in sort_filters else ''
 
-    url = BASE_URL + 'recent/' + str(page)
+    url = BASE_URL + 'search.php?q=top100:recent'
     return jsonify(parse_page(url, sort=sort_arg)), 200
 
 
 @APP.route('/api-search/', methods=['GET'])
 def api_search():
-    url = BASE_URL + 's/?' + request.query_string.decode('utf-8')
+    query = request.query_string.decode('utf-8')
+    if not query:
+      return 'No search term entered<br/>Format for api-search: /api-search/?q=<search_term>'
+
+    url = BASE_URL + 'search.php?q=' + query
     return jsonify(parse_page(url)), 200
 
 
@@ -115,8 +126,7 @@ def default_search():
 
 
 @APP.route('/search/<term>/', methods=['GET'])
-@APP.route('/search/<term>/<int:page>/', methods=['GET'])
-def search_torrents(term=None, page=0):
+def search_torrents(term=None):
     '''
     Searches TPB using the given term. If no term is given, defaults to recent.
     '''
@@ -124,23 +134,31 @@ def search_torrents(term=None, page=0):
     sort = request.args.get('sort')
     sort_arg = sort_filters[request.args.get('sort')] if sort in sort_filters else ''
 
-    url = BASE_URL + 'search/' + str(term) + '/' + str(page) + '/' + str(sort_arg)
+    url = BASE_URL + 'search/' + str(term)
     return jsonify(parse_page(url)), 200
 
 
 def parse_page(url, sort=None):
+    
+    driver = webdriver.Remote(HOST_URL, DesiredCapabilities.CHROME)
+    
+    driver.get(url)
+    delay = 30 # seconds
+    try:
+        myElem = WebDriverWait(driver, delay).until(EC.presence_of_element_located((By.ID,'torrents')))
+        soup = BeautifulSoup(driver.page_source, 'lxml')
+    except TimeoutException:
+        return "Could not load search results!"
+    
     '''
     This function parses the page and returns list of torrents
     '''
-    data = requests.get(url).text
-    soup = BeautifulSoup(data, 'lxml')
-    table_present = soup.find('table', {'id': 'searchResult'})
-    if table_present is None:
-        return EMPTY_LIST
     titles = parse_titles(soup)
     links = parse_links(soup)
     magnets = parse_magnet_links(soup)
-    times, sizes, uploaders = parse_description(soup)
+    uploaders = parse_uploaders(soup)
+    sizes = parse_sizes(soup)
+    times = parse_times(soup)
     seeders, leechers = parse_seed_leech(soup)
     cat, subcat = parse_cat(soup)
     torrents = []
@@ -169,7 +187,7 @@ def parse_magnet_links(soup):
     '''
     Returns list of magnet links from soup
     '''
-    magnets = soup.find('table', {'id': 'searchResult'}).find_all('a', href=True)
+    magnets = soup.find('ol', {'id': 'torrents'}).find_all('a', href=True)
     magnets = [magnet['href'] for magnet in magnets if 'magnet' in magnet['href']]
     return magnets
 
@@ -178,7 +196,7 @@ def parse_titles(soup):
     '''
     Returns list of titles of torrents from soup
     '''
-    titles = soup.find_all(class_='detLink')
+    titles = soup.find_all(class_='list-item item-name item-title')
     titles[:] = [title.get_text() for title in titles]
     return titles
 
@@ -187,33 +205,52 @@ def parse_links(soup):
     '''
     Returns list of links of torrents from soup
     '''
-    links = soup.find_all('a', class_='detLink', href=True)
-    links[:] = [link['href'] for link in links]
+    links = soup.find_all(class_='list-item item-name item-title')
+    links = [link.find_all('a', href=True) for link in links ]
+    links[:] = [link[0]['href'] for link in links]
     return links
 
 
-def parse_description(soup):
+def parse_sizes(soup):
     '''
-    Returns list of time, size and uploader from soup
+    Returns list of size from soup
     '''
-    description = soup.find_all('font', class_='detDesc')
-    description[:] = [desc.get_text().split(',') for desc in description]
-    times, sizes, uploaders = map(list, zip(*description))
-    times[:] = [time.replace(u'\xa0', u' ').replace('Uploaded ', '') for time in times]
-    sizes[:] = [size.replace(u'\xa0', u' ').replace(' Size ', '') for size in sizes]
-    uploaders[:] = [uploader.replace(' ULed by ', '') for uploader in uploaders]
-    return times, sizes, uploaders
+    sizes = soup.find_all(class_='list-item item-size')
+    sizes[:] = [size.get_text() for size in sizes]
+
+    return sizes
+
+	
+def parse_times(soup):
+    '''
+    Returns list of time from soup
+    '''
+    times = soup.find_all(class_='list-item item-uploaded')
+    times[:] = [time.get_text() for time in times]
+
+    return times
+
+
+def parse_uploaders(soup):
+    '''
+    Returns list of uploader from soup
+    '''
+    uploaders = soup.find_all(class_='list-item item-user')
+    uploaders[:] = [uploader.get_text() for uploader in uploaders]
+
+    return uploaders
 
 
 def parse_seed_leech(soup):
     '''
     Returns list of numbers of seeds and leeches from soup
-    '''
-    slinfo = soup.find_all('td', {'align': 'right'})
-    seeders = slinfo[::2]
-    leechers = slinfo[1::2]
+    ''' 
+    seeders = soup.find_all(class_='list-item item-seed')
     seeders[:] = [seeder.get_text() for seeder in seeders]
+
+    leechers = soup.find_all(class_='list-item item-leech')
     leechers[:] = [leecher.get_text() for leecher in leechers]
+
     return seeders, leechers
 
 
@@ -221,10 +258,13 @@ def parse_cat(soup):
     '''
     Returns list of category and subcategory
     '''
-    cat_subcat = soup.find_all('center')
-    cat_subcat[:] = [c.get_text().replace('(', '').replace(')', '').split() for c in cat_subcat]
-    cat = [cs[0] for cs in cat_subcat]
-    subcat = [' '.join(cs[1:]) for cs in cat_subcat]
+    cat_subcat = soup.find_all(class_='list-item item-type')
+    cat = [cat.find_all('a', href=True)[::2] for cat in cat_subcat ]
+    subcat = [subcat.find_all('a', href=True)[1::2] for subcat in cat_subcat ]
+    
+    cat[:] = [c[0].get_text() for c in cat]
+    subcat[:] = [s[0].get_text() for s in subcat]
+    
     return cat, subcat
 
 
@@ -271,6 +311,7 @@ def convert_to_date(date_str):
         date_format = '%Y-%m-%d %H:%M'
 
     else:
-        date_format = '%m-%d %Y'
+        # date_format = '%m-%d %Y'
+        date_format = '%Y-%m-%d'
 
     return datetime.strptime(date_str, date_format)

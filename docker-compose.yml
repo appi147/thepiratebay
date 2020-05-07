@@ -1,0 +1,25 @@
+# docker-compose.yml
+version: "3.7"
+services:
+  chrome:
+    image: selenium/standalone-chrome
+    hostname: chrome
+    volumes:
+      - /dev/shm:/dev/shm
+    ports:
+     - ${HOST_PORT}:${HOST_PORT}
+  pirate-bay:
+    build: .
+    depends_on:
+      - chrome
+    links:
+      - chrome
+    ports:
+      - ${API_PORT}:${API_PORT}
+    env_file:
+     - .env
+    environment:
+      - HOST_URL=${HOST_URL}
+      - BASE_URL=${BASE_URL}
+      - WAIT_HOSTS=chrome:${HOST_PORT}
+      - PORT=${PORT}

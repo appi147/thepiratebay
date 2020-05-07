@@ -22,7 +22,7 @@ def test_date_conv():
         'Today 10:00',
         '1 min ago',
         '3 mins ago',
-        '01-01 2016',
+        '2016-01-01',
         'Y-day 10:00'
     ]
 

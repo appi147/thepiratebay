@@ -4,3 +4,4 @@ beautifulsoup4
 requests
 lxml
 flask_cors
+selenium

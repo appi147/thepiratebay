@@ -48,6 +48,6 @@ Top torrents for last 48hours can be accessed through the `/top48h/category_code
 #### Running with Docker
 ```bash
 # Assuming you have docker on your machine this should work
-docker build -t pirate-bay .
-docker container run -e "BASE_URL=https://thepiratebay.asia/" -p 5000:5000 --name pirateBay pirate-bay
+# Set configuration variables in .env file
+docker compose up --build -d
 ```
