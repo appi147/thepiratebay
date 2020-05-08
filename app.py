@@ -23,7 +23,6 @@ CORS(APP)
 EMPTY_LIST = []
 
 BASE_URL = os.getenv('BASE_URL', 'https://thepiratebay.org/')
-HOST_URL = os.getenv('HOST_URL', 'http://0.0.0.0:4444/wd/hub')
 
 JSONIFY_PRETTYPRINT_REGULAR = True
 
@@ -140,7 +139,13 @@ def search_torrents(term=None):
 
 def parse_page(url, sort=None):
     
-    driver = webdriver.Remote(HOST_URL, DesiredCapabilities.CHROME)
+    chrome_options = webdriver.ChromeOptions()
+	chrome_options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+	chrome_options.add_argument("--headless")
+	chrome_options.add_argument("--disable-dev-shm-usage")
+	chrome_options.add_argument("--no-sandbox")
+	
+    driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), chrome_options=chrome_options)
     
     driver.get(url)
     delay = 30 # seconds
