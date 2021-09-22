@@ -36,6 +36,16 @@ sort_filters = {
     'category_desc': 14
 }
 
+# Translation table for category
+category = {
+    'audio': 100,
+    'aideo': 200,
+    'applications': 300,
+    'games': 400,
+    'porn': 500,
+    'other': 600,
+}
+
 
 @APP.route('/', methods=['GET'])
 def index():
@@ -122,9 +132,10 @@ def search_torrents(term=None, page=0):
     '''
 
     sort = request.args.get('sort')
-    sort_arg = sort_filters[request.args.get('sort')] if sort in sort_filters else ''
+    sort_arg = sort_filters[request.args.get('sort')] if sort in sort_filters else 99
+    cat_arg = sort_filters[request.args.get('cat')] if sort in category else 0
 
-    url = BASE_URL + 'search/' + str(term) + '/' + str(page) + '/' + str(sort_arg)
+    url = BASE_URL + 'search/' + str(term) + '/' + str(page) + '/' + str(sort_arg) + '/' + str(cat_arg)
     return jsonify(parse_page(url)), 200
 
 
